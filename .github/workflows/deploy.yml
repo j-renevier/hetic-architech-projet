@@ -16,7 +16,7 @@ jobs:
 
       - name: Print Hostname and IP
         run: |
-          echo "Hostname: $(hostname)"
+          echo ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }}
           echo "Public IP: $(curl ifconfig.me)"
 
       # Étape 2 : Configurer l'agent SSH
