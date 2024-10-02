@@ -14,8 +14,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Checkout code
-        uses: ${{ secrets.TEST}}
+      - name: Print Hostname and IP
+        run: |
+          echo "Hostname: $(hostname)"
+          echo "Public IP: $(curl ifconfig.me)"
 
       # Étape 2 : Configurer l'agent SSH
       - name: Setup SSH Agent
