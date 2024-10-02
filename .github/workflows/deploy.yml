@@ -1,0 +1,49 @@
+name: Deploy to AWS Lightsail
+
+on:
+  push:
+    branches:
+      - main  # Déclenche le déploiement à chaque push sur la branche 'main'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the project
+        run: npm run build
+
+      - name: Compress build files
+        run: tar -czvf build.tar.gz dist/
+
+      - name: Copy to AWS Lightsail
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.LIGHTSAIL_IP }}   # L'adresse IP du serveur Lightsail
+          username: ubuntu                    # Nom d'utilisateur (peut être 'ubuntu' ou 'bitnami')
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}  # Clef SSH privée (stockée dans les GitHub Secrets)
+          source: "build.tar.gz"
+          target: "/home/ubuntu/"
+
+      - name: Connect to Lightsail and deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.LIGHTSAIL_IP }}
+          username: ubuntu
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/
+            tar -xzvf build.tar.gz
+            docker-compose down
+            docker-compose up -d --build
