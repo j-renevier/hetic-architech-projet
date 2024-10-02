@@ -3,47 +3,35 @@ name: Deploy to AWS Lightsail
 on:
   push:
     branches:
-      - main  # Déclenche le déploiement à chaque push sur la branche 'main'
+      - main  # Déploiement déclenché lors d'un push sur la branche main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout the code
-        uses: actions/checkout@v2
+      # Étape 1 : Clonage du dépôt
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      # Étape 2 : Configurer l'agent SSH
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.7.0
         with:
-          node-version: '18'
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Install dependencies
-        run: npm install
+      # Étape 3 : Déployer l'application via Docker Compose
+      - name: Deploy to Lightsail
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} << 'EOF'
+            cd /path/to/your/project
 
-      - name: Build the project
-        run: npm run build
-
-      - name: Compress build files
-        run: tar -czvf build.tar.gz dist/
-
-      - name: Copy to AWS Lightsail
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.LIGHTSAIL_IP }}   # L'adresse IP du serveur Lightsail
-          username: ubuntu                    # Nom d'utilisateur (peut être 'ubuntu' ou 'bitnami')
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}  # Clef SSH privée (stockée dans les GitHub Secrets)
-          source: "build.tar.gz"
-          target: "/home/ubuntu/"
-
-      - name: Connect to Lightsail and deploy
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.LIGHTSAIL_IP }}
-          username: ubuntu
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          script: |
-            cd /home/ubuntu/
-            tar -xzvf build.tar.gz
+            # Stopper les containers en cours d'exécution
             docker-compose down
-            docker-compose up -d --build
+
+            # Mettre à jour le code source
+            git pull origin main
+
+            # Rebuild et relancer les containers
+            docker-compose up --build -d
+          EOF
