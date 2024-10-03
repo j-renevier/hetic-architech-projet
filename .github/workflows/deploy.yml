@@ -1,10 +1,5 @@
 name: Deploy to AWS Lightsail
 
-on:
-  push:
-    branches:
-      - main  # Déploiement déclenché lors d'un push sur la branche main
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
